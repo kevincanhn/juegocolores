@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Los Colores de Oliver</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Deshabilitar selección de texto para que parezca más una app */
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: manipulation; /* Evita el zoom al hacer doble tap */
+            background-color: #f0fdf4;
+            overflow: hidden; /* Previene scroll no deseado */
+        }
+
+        /* Animaciones divertidas */
+        @keyframes bounce-scale {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .animate-bounce-scale {
+            animation: bounce-scale 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Confeti */
+        .confetti {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            z-index: 50;
+            animation: fall linear forwards;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col font-sans text-gray-800">
+
+    <!-- PANTALLA DE INICIO -->
+    <div id="screen-home" class="flex-1 flex flex-col items-center justify-center p-6 space-y-8 absolute inset-0 bg-green-50 z-10">
+        <div class="text-center animate-pop">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-blue-600 mb-2">¡Hola Oliver! 👋</h1>
+            <p class="text-2xl md:text-3xl font-bold text-gray-600">Vamos a jugar con los colores 🎨</p>
+        </div>
+
+        <div class="flex flex-col space-y-6 w-full max-w-sm">
+            <button onclick="iniciarModo('aprender')" class="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 text-3xl font-bold py-8 px-6 rounded-3xl shadow-[0_8px_0_rgb(161,98,7)] active:shadow-[0_0px_0_rgb(161,98,7)] active:translate-y-2 transition-all flex items-center justify-center gap-4">
+                <span>📖</span> Aprender
+            </button>
+            <button onclick="iniciarModo('jugar')" class="bg-blue-400 hover:bg-blue-500 text-white text-3xl font-bold py-8 px-6 rounded-3xl shadow-[0_8px_0_rgb(29,78,216)] active:shadow-[0_0px_0_rgb(29,78,216)] active:translate-y-2 transition-all flex items-center justify-center gap-4">
+                <span>🎈</span> Jugar
+            </button>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE APRENDER -->
+    <div id="screen-learn" class="hidden flex-1 flex-col absolute inset-0 bg-white z-10">
+        <div class="p-4 flex justify-between items-center bg-gray-100 shadow-md">
+            <button onclick="volverInicio()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-6 rounded-2xl text-xl">
+                🏠 Volver
+            </button>
+            <div class="text-2xl font-bold text-gray-600">Toca el color 👇</div>
+            <button onclick="hablar(colores[colorActualIndex].nombre)" class="bg-blue-200 p-3 rounded-full text-2xl shadow">
+                🔊
+            </button>
+        </div>
+        
+        <div class="flex-1 flex items-center justify-center p-6 relative">
+            <button onclick="anteriorColor()" class="absolute left-4 z-20 bg-white/80 p-4 rounded-full text-4xl shadow-lg active:bg-gray-200">
+                ◀️
+            </button>
+
+            <div id="learn-color-card" onclick="tocarColorAprender()" class="w-64 h-64 md:w-80 md:h-80 rounded-[3rem] shadow-2xl flex items-center justify-center cursor-pointer transition-transform transform active:scale-95 animate-pop">
+                <!-- Color se inyecta por JS -->
+            </div>
+
+            <button onclick="siguienteColor()" class="absolute right-4 z-20 bg-white/80 p-4 rounded-full text-4xl shadow-lg active:bg-gray-200">
+                ▶️
+            </button>
+        </div>
+        
+        <div class="pb-10 text-center">
+            <h2 id="learn-color-name" class="text-6xl font-black capitalize drop-shadow-sm"></h2>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE JUGAR -->
+    <div id="screen-play" class="hidden flex-1 flex-col absolute inset-0 bg-white z-10">
+        <div class="p-4 flex justify-between items-center bg-gray-100 shadow-md">
+            <button onclick="volverInicio()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-6 rounded-2xl text-xl">
+                🏠 Volver
+            </button>
+            <button onclick="repetirInstruccion()" class="bg-blue-200 p-3 rounded-full text-2xl shadow active:bg-blue-300 animate-pulse">
+                🔊 Repetir
+            </button>
+        </div>
+
+        <div class="text-center pt-8 px-4">
+            <h2 id="play-instruction" class="text-4xl md:text-5xl font-extrabold text-gray-700"></h2>
+        </div>
+
+        <div class="flex-1 flex items-center justify-center p-4">
+            <div id="play-options" class="flex flex-wrap justify-center gap-6 md:gap-10 w-full max-w-2xl">
+                <!-- Opciones se inyectan por JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- BASE DE DATOS DE COLORES ---
+        const colores = [
+            { nombre: 'Rojo', hex: '#EF4444', texto: 'text-red-600' },
+            { nombre: 'Azul', hex: '#3B82F6', texto: 'text-blue-600' },
+            { nombre: 'Amarillo', hex: '#EAB308', texto: 'text-yellow-500' },
+            { nombre: 'Verde', hex: '#22C55E', texto: 'text-green-600' },
+            { nombre: 'Naranja', hex: '#F97316', texto: 'text-orange-500' },
+            { nombre: 'Morado', hex: '#A855F7', texto: 'text-purple-600' },
+            { nombre: 'Rosa', hex: '#EC4899', texto: 'text-pink-500' },
+            { nombre: 'Negro', hex: '#1F2937', texto: 'text-gray-800' },
+            { nombre: 'Blanco', hex: '#FFFFFF', texto: 'text-gray-400', borde: true }
+        ];
+
+        // --- ESTADO DE LA APLICACIÓN ---
+        let colorActualIndex = 0;
+        let colorObjetivoJuego = null;
+        let vocesDisponibles = [];
+        const synth = window.speechSynthesis;
+
+        // Intentar cargar las voces (a veces requiere un pequeño retraso en algunos navegadores)
+        synth.onvoiceschanged = () => {
+            vocesDisponibles = synth.getVoices();
+        };
+
+        // --- FUNCIONES DE VOZ ---
+        function hablar(texto) {
+            if (synth.speaking) {
+                synth.cancel();
+            }
+            const utterThis = new SpeechSynthesisUtterance(texto);
+            utterThis.lang = 'es-MX'; // Español latinoamericano
+            utterThis.rate = 0.85; // Un poco más lento para que un niño de 2 años lo entienda bien
+            utterThis.pitch = 1.1; // Tono ligeramente más amigable
+            synth.speak(utterThis);
+        }
+
+        // --- NAVEGACIÓN DE PANTALLAS ---
+        function mostrarPantalla(idPantalla) {
+            document.getElementById('screen-home').classList.add('hidden');
+            document.getElementById('screen-learn').classList.add('hidden');
+            document.getElementById('screen-play').classList.add('hidden');
+            document.getElementById(idPantalla).classList.remove('hidden');
+        }
+
+        function volverInicio() {
+            synth.cancel();
+            mostrarPantalla('screen-home');
+        }
+
+        function iniciarModo(modo) {
+            // Un pequeño truco: activar la síntesis de voz en el primer clic del usuario
+            // para saltar las restricciones de los navegadores móviles.
+            hablar(" "); 
+
+            if (modo === 'aprender') {
+                mostrarPantalla('screen-learn');
+                colorActualIndex = 0;
+                actualizarPantallaAprender();
+                setTimeout(() => hablar("Modo aprender. Toca los colores."), 300);
+            } else if (modo === 'jugar') {
+                mostrarPantalla('screen-play');
+                generarNuevaPregunta();
+            }
+        }
+
+        // --- LÓGICA: MODO APRENDER ---
+        function actualizarPantallaAprender() {
+            const color = colores[colorActualIndex];
+            const tarjeta = document.getElementById('learn-color-card');
+            const titulo = document.getElementById('learn-color-name');
+
+            tarjeta.style.backgroundColor = color.hex;
+            if (color.borde) {
+                tarjeta.style.border = '8px solid #E5E7EB';
+            } else {
+                tarjeta.style.border = 'none';
+            }
+
+            titulo.textContent = color.nombre;
+            titulo.className = `text-6xl font-black capitalize drop-shadow-sm ${color.texto}`;
+            
+            // Animación de aparición
+            tarjeta.classList.remove('animate-pop');
+            void tarjeta.offsetWidth; // Trigger reflow
+            tarjeta.classList.add('animate-pop');
+        }
+
+        function tocarColorAprender() {
+            const color = colores[colorActualIndex];
+            hablar(color.nombre);
+            
+            // Animación al tocar
+            const tarjeta = document.getElementById('learn-color-card');
+            tarjeta.classList.remove('animate-bounce-scale');
+            void tarjeta.offsetWidth;
+            tarjeta.classList.add('animate-bounce-scale');
+        }
+
+        function siguienteColor() {
+            colorActualIndex = (colorActualIndex + 1) % colores.length;
+            actualizarPantallaAprender();
+            tocarColorAprender();
+        }
+
+        function anteriorColor() {
+            colorActualIndex = (colorActualIndex - 1 + colores.length) % colores.length;
+            actualizarPantallaAprender();
+            tocarColorAprender();
+        }
+
+        // --- LÓGICA: MODO JUGAR ---
+        function obtenerColoresAleatorios(cantidad, excluir = null) {
+            let opciones = colores.filter(c => c !== excluir);
+            // Mezclar
+            opciones.sort(() => 0.5 - Math.random());
+            return opciones.slice(0, cantidad);
+        }
+
+        function generarNuevaPregunta() {
+            // 1. Elegir un color objetivo
+            colorObjetivoJuego = obtenerColoresAleatorios(1)[0];
+            
+            // 2. Elegir 2 colores distractores
+            const distractores = obtenerColoresAleatorios(2, colorObjetivoJuego);
+            
+            // 3. Juntar y mezclar las opciones (3 en total)
+            let opcionesJuego = [colorObjetivoJuego, ...distractores];
+            opcionesJuego.sort(() => 0.5 - Math.random());
+
+            // 4. Actualizar la interfaz
+            const instruccion = document.getElementById('play-instruction');
+            instruccion.innerHTML = `¿Dónde está el <span class="${colorObjetivoJuego.texto}">${colorObjetivoJuego.nombre}</span>?`;
+            
+            const contenedorOpciones = document.getElementById('play-options');
+            contenedorOpciones.innerHTML = ''; // Limpiar
+
+            opcionesJuego.forEach(color => {
+                const btn = document.createElement('button');
+                btn.className = 'w-32 h-32 md:w-48 md:h-48 rounded-full shadow-xl transition-transform active:scale-90 animate-pop';
+                btn.style.backgroundColor = color.hex;
+                if(color.borde) btn.style.border = '4px solid #E5E7EB';
+                
+                btn.onclick = () => verificarRespuesta(color, btn);
+                contenedorOpciones.appendChild(btn);
+            });
+
+            // 5. Dar la instrucción por voz
+            setTimeout(repetirInstruccion, 400);
+        }
+
+        function repetirInstruccion() {
+            if(colorObjetivoJuego) {
+                hablar(`¿Dónde está el color ${colorObjetivoJuego.nombre}?`);
+            }
+        }
+
+        function verificarRespuesta(colorSeleccionado, elementoBoton) {
+            if (colorSeleccionado === colorObjetivoJuego) {
+                // ¡CORRECTO!
+                hablar(`¡Muy bien Oliver! Ese es el ${colorSeleccionado.nombre}.`);
+                elementoBoton.classList.add('animate-bounce-scale');
+                lanzarConfeti();
+                
+                // Esperar un momento y generar la siguiente pregunta
+                setTimeout(() => {
+                    generarNuevaPregunta();
+                }, 2500);
+            } else {
+                // INCORRECTO
+                hablar(`Ups, ese es ${colorSeleccionado.nombre}. Intenta buscar el ${colorObjetivoJuego.nombre}.`);
+                elementoBoton.classList.remove('animate-shake');
+                void elementoBoton.offsetWidth; // Trigger reflow
+                elementoBoton.classList.add('animate-shake');
+            }
+        }
+
+        // --- EFECTOS ESPECIALES ---
+        function lanzarConfeti() {
+            const coloresConfeti = ['#EF4444', '#3B82F6', '#EAB308', '#22C55E', '#A855F7'];
+            for (let i = 0; i < 50; i++) {
+                const confeti = document.createElement('div');
+                confeti.classList.add('confetti');
+                
+                // Propiedades aleatorias
+                confeti.style.backgroundColor = coloresConfeti[Math.floor(Math.random() * coloresConfeti.length)];
+                confeti.style.left = Math.random() * 100 + 'vw';
+                confeti.style.animationDuration = (Math.random() * 2 + 1) + 's';
+                confeti.style.animationDelay = (Math.random() * 0.5) + 's';
+                
+                // Formas aleatorias (cuadrados o círculos)
+                if (Math.random() > 0.5) {
+                    confeti.style.borderRadius = '50%';
+                }
+
+                document.body.appendChild(confeti);
+
+                // Limpiar confeti del DOM después de la animación
+                setTimeout(() => {
+                    confeti.remove();
+                }, 3500);
+            }
+        }
+    </script>
+</body>
+</html>
