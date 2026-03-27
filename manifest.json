@@ -1,0 +1,14 @@
+{
+  "name": "Colores de Oli",
+  "short_name": "NombreCorto",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "icono.png",
+      "type": "image/png"
+    }
+  ]
+}
