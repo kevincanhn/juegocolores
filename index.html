@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="manifest" href="manifest.json">
-    
     <title>Los Colores de Oliver</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -63,7 +61,7 @@
     <!-- PANTALLA DE INICIO -->
     <div id="screen-home" class="flex-1 flex flex-col items-center justify-center p-6 space-y-8 absolute inset-0 bg-green-50 z-10">
         <div class="text-center animate-pop">
-            <h1 class="text-4xl md:text-6xl font-extrabold text-blue-600 mb-2">¡Hola Oliv! 👋</h1>
+            <h1 class="text-4xl md:text-6xl font-extrabold text-blue-600 mb-2">¡Hola Oliver! 👋</h1>
             <p class="text-2xl md:text-3xl font-bold text-gray-600">Vamos a jugar con los colores 🎨</p>
         </div>
 
@@ -147,24 +145,51 @@
         // --- ESTADO DE LA APLICACIÓN ---
         let colorActualIndex = 0;
         let colorObjetivoJuego = null;
-        let vocesDisponibles = [];
+        
+        // Variables para el sistema de audio mejorado
+        let audioActual = null;
         const synth = window.speechSynthesis;
 
-        // Intentar cargar las voces (a veces requiere un pequeño retraso en algunos navegadores)
-        synth.onvoiceschanged = () => {
-            vocesDisponibles = synth.getVoices();
-        };
-
-        // --- FUNCIONES DE VOZ ---
+        // --- FUNCIONES DE VOZ (MEJORADAS CON GOOGLE TTS) ---
         function hablar(texto) {
+            // Si el texto está vacío, es solo un truco para desbloquear el audio en móviles
+            if (!texto || texto.trim() === "") {
+                if (synth.speaking) synth.cancel();
+                let u = new SpeechSynthesisUtterance(" ");
+                u.volume = 0;
+                synth.speak(u);
+                
+                audioActual = new Audio();
+                audioActual.play().catch(e => {});
+                return;
+            }
+
+            // Detener cualquier audio que se esté reproduciendo actualmente
+            if (audioActual) {
+                audioActual.pause();
+                audioActual.currentTime = 0;
+            }
             if (synth.speaking) {
                 synth.cancel();
             }
-            const utterThis = new SpeechSynthesisUtterance(texto);
-            utterThis.lang = 'es-MX'; // Español latinoamericano
-            utterThis.rate = 0.85; // Un poco más lento para que un niño de 2 años lo entienda bien
-            utterThis.pitch = 1.1; // Tono ligeramente más amigable
-            synth.speak(utterThis);
+
+            // Usamos el endpoint no oficial pero gratuito y público de Google Translate
+            // tl=es-MX define Español de México, que suena más natural para Latinoamérica
+            const urlTTS = `https://translate.google.com/translate_tts?ie=UTF-8&tl=es-MX&client=tw-ob&q=${encodeURIComponent(texto)}`;
+            
+            audioActual = new Audio(urlTTS);
+            
+            // Intentar reproducir la voz de Google
+            audioActual.play().catch(error => {
+                console.warn("No se pudo cargar la voz de alta calidad. Usando voz de respaldo (nativa):", error);
+                
+                // FALLBACK: Si falla (por ejemplo, sin internet), usamos la voz nativa que tenías antes
+                const utterThis = new SpeechSynthesisUtterance(texto);
+                utterThis.lang = 'es-MX'; 
+                utterThis.rate = 0.85; 
+                utterThis.pitch = 1.1; 
+                synth.speak(utterThis);
+            });
         }
 
         // --- NAVEGACIÓN DE PANTALLAS ---
@@ -176,13 +201,14 @@
         }
 
         function volverInicio() {
+            if (audioActual) audioActual.pause();
             synth.cancel();
             mostrarPantalla('screen-home');
         }
 
         function iniciarModo(modo) {
-            // Un pequeño truco: activar la síntesis de voz en el primer clic del usuario
-            // para saltar las restricciones de los navegadores móviles.
+            // Un pequeño truco: activar el audio en el primer clic del usuario
+            // para saltar las restricciones de autoplay de los navegadores.
             hablar(" "); 
 
             if (modo === 'aprender') {
@@ -289,7 +315,7 @@
 
         function verificarRespuesta(colorSeleccionado, elementoBoton) {
             if (colorSeleccionado === colorObjetivoJuego) {
-                // ¡CORRECTO!
+                // ¡CORRECTO! - Personalizado para Oliver
                 hablar(`¡Muy bien Oliver! Ese es el ${colorSeleccionado.nombre}.`);
                 elementoBoton.classList.add('animate-bounce-scale');
                 lanzarConfeti();
@@ -297,7 +323,7 @@
                 // Esperar un momento y generar la siguiente pregunta
                 setTimeout(() => {
                     generarNuevaPregunta();
-                }, 2500);
+                }, 2800);
             } else {
                 // INCORRECTO
                 hablar(`Ups, ese es ${colorSeleccionado.nombre}. Intenta buscar el ${colorObjetivoJuego.nombre}.`);
@@ -333,11 +359,6 @@
                 }, 3500);
             }
         }
-    </script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js');
-      }
     </script>
 </body>
 </html>
